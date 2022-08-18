@@ -7,28 +7,33 @@ from transformer.transformer import ClassificationTransformer
 num_classes = 4
 batch_size = 16
 epochs = 100
-num_words = 1000
-hopping_num = 1
-head_num = 8
-hidden_dim = 256
+num_words = 6000
+hopping_num = 4
+head_num = 10
+hidden_dim = 300
 dropout_rate = 0.1
 learning_rate = 1.0e-5
 
+dataset_path = "data/processed/processed_dataset.pickle"
+embedding_path = "data/embedding.pickle"
 
 def main():
     # データセット読み込み
-    dataset_path = "data/processed/processed_dataset.pickle"
     with open(dataset_path, 'rb') as f:
         x = pickle.load(f)
         y = pickle.load(f)
 
+    with open(embedding_path, 'rb') as f:
+        embeddings = pickle.load(f)
+
     model = ClassificationTransformer(
                 num_classes=num_classes,
-                vocab_size=num_words + 1,
+                vocab_size=num_words,
                 hopping_num=hopping_num,
                 head_num=head_num,
                 hidden_dim=hidden_dim,
-                dropout_rate=dropout_rate
+                dropout_rate=dropout_rate,
+                embeddings=embeddings
     )
 
     model.compile(optimizer=tf.keras.optimizers.Adam(
