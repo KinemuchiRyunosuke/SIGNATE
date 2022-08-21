@@ -8,6 +8,7 @@ import gensim
 from bs4 import BeautifulSoup
 from sklearn.model_selection import train_test_split
 
+num_classes = 2
 num_words = 1000
 
 csv_path = "data/raw/train.csv"
@@ -23,8 +24,11 @@ def main():
     x = df['description'].to_numpy()
     y = df['jobflag'].to_numpy()
 
+    # MLを陽性，それ以外を陰性にする
+    y = (y == 2).astype(int)
+
     x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=0.2, random_state=0)
+        x, y, test_size=0.4, random_state=1)
 
     # htmlタグを削除
     x_train = clean_html(x_train)
@@ -55,7 +59,8 @@ def main():
         pickle.dump(word_vectors, f)
 
     # One-Hot Encoding
-    y_train = tf.keras.utils.to_categorical(y - 1, num_classes=4)
+    y_train = tf.keras.utils.to_categorical(y_train, num_classes=num_classes)
+    y_test = tf.keras.utils.to_categorical(y_test, num_classes=num_classes)
 
     # 前処理済みのデータを保存
     with open(processed_path, 'wb') as f:
@@ -72,7 +77,7 @@ def clean_html(x):
 
     return x
 
-def convert_examples_to_features(x, maxlen, tokenizer, num_words):
+def convert_examples_to_features(x, maxlen, tokenizer):
     """文章をTransformerに入力可能な状態に変更する
 
     Args:

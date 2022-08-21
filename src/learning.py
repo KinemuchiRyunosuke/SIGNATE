@@ -4,7 +4,7 @@ import tensorflow_addons as tfa
 
 from transformer.transformer import ClassificationTransformer
 
-num_classes = 4
+num_classes = 2
 batch_size = 16
 epochs = 100
 num_words = 6000
