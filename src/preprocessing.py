@@ -1,4 +1,4 @@
-from optparse import OptionValueError
+from random import random
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -6,7 +6,7 @@ import pickle
 import gensim
 
 from bs4 import BeautifulSoup
-from transformers import AutoTokenizer
+from sklearn.model_selection import train_test_split
 
 num_words = 1000
 
@@ -23,10 +23,12 @@ def main():
     x = df['description'].to_numpy()
     y = df['jobflag'].to_numpy()
 
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=0.2, random_state=0)
+
     # htmlタグを削除
-    for i, text in enumerate(x):
-        soup = BeautifulSoup(text, 'html.parser')
-        x[i] = soup.get_text()
+    x_train = clean_html(x_train)
+    x_test = clean_html(x_test)
 
     tokenizer = tf.keras.preprocessing.text.Tokenizer(
         num_words=num_words,
@@ -36,12 +38,15 @@ def main():
     vocab = {'<PAD>':0, '<UNK>':1, '<CLS>':2}
     tokenizer.word_index = vocab
 
-    tokenizer.fit_on_texts(x)
-    x = tokenizer.texts_to_sequences(x)
+    tokenizer.fit_on_texts(x_train)
+    x_train = tokenizer.texts_to_sequences(x_train)
+    x_test = tokenizer.texts_to_sequences(x_test)
 
-    maxlen = max(list(map(lambda seq: len(seq), x)))
-    x = tf.keras.preprocessing.sequence.pad_sequences(
-            x, maxlen=maxlen, padding='post', value=0)
+    maxlen = max(list(map(lambda seq: len(seq), x_train)))
+    x_train = tf.keras.preprocessing.sequence.pad_sequences(
+            x_train, maxlen=maxlen+10, padding='post', value=0)
+    x_test = tf.keras.preprocessing.sequence.pad_sequences(
+            x_test, maxlen=maxlen+10, padding='post', value=0)
 
     word_vectors = gensim.models.KeyedVectors.load_word2vec_format(word_vectors_path)
     word_vectors = filter_embeddings(word_vectors, tokenizer.word_index, num_words)
@@ -50,13 +55,22 @@ def main():
         pickle.dump(word_vectors, f)
 
     # One-Hot Encoding
-    y = tf.keras.utils.to_categorical(y - 1, num_classes=4)
+    y_train = tf.keras.utils.to_categorical(y - 1, num_classes=4)
 
     # 前処理済みのデータを保存
     with open(processed_path, 'wb') as f:
-        pickle.dump(x, f)
-        pickle.dump(y, f)
+        pickle.dump(x_train, f)
+        pickle.dump(x_test, f)
+        pickle.dump(y_train, f)
+        pickle.dump(y_test, f)
 
+
+def clean_html(x):
+    for i, text in enumerate(x):
+        soup = BeautifulSoup(text, 'html.parser')
+        x[i] = soup.get_text()
+
+    return x
 
 def convert_examples_to_features(x, maxlen, tokenizer, num_words):
     """文章をTransformerに入力可能な状態に変更する

@@ -20,8 +20,10 @@ embedding_path = "data/embedding.pickle"
 def main():
     # データセット読み込み
     with open(dataset_path, 'rb') as f:
-        x = pickle.load(f)
-        y = pickle.load(f)
+        x_train = pickle.load(f)
+        x_test = pickle.load(f)
+        y_train = pickle.load(f)
+        y_test = pickle.load(f)
 
     with open(embedding_path, 'rb') as f:
         embeddings = pickle.load(f)
@@ -51,11 +53,11 @@ def main():
             save_best_only=True)
     ]
 
-    model.fit(x=x,
-              y=y,
+    model.fit(x=x_train,
+              y=y_train,
               batch_size=batch_size,
               epochs=epochs,
-              validation_split=0.2,
+              validation_data=(x_test, y_test),
               callbacks=callbacks,
               shuffle=True)
 

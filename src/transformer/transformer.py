@@ -17,6 +17,7 @@ class ClassificationTransformer(tf.keras.models.Model):
             hidden_dim: int = 512,
             dropout_rate: float = 0.1,
             output_bias = 'zeros',
+            embeddings = None,
             *args,
             **kwargs,
     ) -> None:
@@ -35,6 +36,7 @@ class ClassificationTransformer(tf.keras.models.Model):
             head_num=head_num,
             hidden_dim=hidden_dim,
             dropout_rate=dropout_rate,
+            embeddings=embeddings
         )
         self.dense_layer = tf.keras.layers.Dense(
                             hidden_dim, activation='tanh')
@@ -99,6 +101,7 @@ class Encoder(tf.keras.layers.Layer):
             head_num: int,
             hidden_dim: int,
             dropout_rate: float,
+            embeddings = None,
             *args,
             **kwargs,
     ) -> None:
@@ -108,7 +111,7 @@ class Encoder(tf.keras.layers.Layer):
         self.hidden_dim = hidden_dim
         self.dropout_rate = dropout_rate
 
-        self.token_embedding = TokenEmbedding(vocab_size, hidden_dim)
+        self.token_embedding = TokenEmbedding(vocab_size, hidden_dim, embeddings)
         self.add_position_embedding = AddPositionalEncoding()
         self.input_dropout_layer = tf.keras.layers.Dropout(dropout_rate)
 

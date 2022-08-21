@@ -9,20 +9,26 @@ class TokenEmbedding(tf.keras.layers.Layer):
     トークン列を Embedded Vector 列に変換します。
     '''
     def __init__(self, vocab_size: int, embedding_dim: int,
-                 dtype=tf.float32, *args, **kwargs):
+                 dtype=tf.float32, embeddings=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.vocab_size = vocab_size
+        self.embeddings = embeddings
         self.embedding_dim = embedding_dim
         self.dtype_ = dtype
+        self.embeddings = embeddings
 
     def build(self, input_shape: tf.TensorShape) -> None:
-        self.lookup_table = self.add_weight(
-            name='token_embedding',
-            shape=[self.vocab_size, self.embedding_dim],
-            dtype=self.dtype_,
-            initializer=tf.random_normal_initializer(
-                            0., self.embedding_dim ** -0.5),
-        )
+        if self.embeddings is None:
+            self.lookup_table = self.add_weight(
+                name='token_embedding',
+                shape=[self.vocab_size, self.embedding_dim],
+                dtype=self.dtype_,
+                initializer=tf.random_normal_initializer(
+                                0., self.embedding_dim ** -0.5),
+            )
+        else:
+            self.lookup_table = self.set_weights(self.embeddings)
+
         super().build(input_shape)
 
     def call(self, input: tf.Tensor) -> tf.Tensor:
