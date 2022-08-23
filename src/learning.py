@@ -1,33 +1,11 @@
-import pickle
 import tensorflow as tf
 import tensorflow_addons as tfa
 
 from transformer.transformer import ClassificationTransformer
 
-num_classes = 2
-batch_size = 16
-epochs = 100
-num_words = 6000
-hopping_num = 4
-head_num = 10
-hidden_dim = 300
-dropout_rate = 0.1
-learning_rate = 1.0e-5
 
-dataset_path = "data/processed/processed_dataset.pickle"
-embedding_path = "data/embedding.pickle"
-
-def main():
-    # データセット読み込み
-    with open(dataset_path, 'rb') as f:
-        x_train = pickle.load(f)
-        x_test = pickle.load(f)
-        y_train = pickle.load(f)
-        y_test = pickle.load(f)
-
-    with open(embedding_path, 'rb') as f:
-        embeddings = pickle.load(f)
-
+def define_model(num_words, hopping_num, head_num, hidden_dim,
+                 dropout_rate, learning_rate, embeddings, num_classes=2):
     model = ClassificationTransformer(
                 num_classes=num_classes,
                 vocab_size=num_words,
@@ -35,20 +13,24 @@ def main():
                 head_num=head_num,
                 hidden_dim=hidden_dim,
                 dropout_rate=dropout_rate,
-                embeddings=embeddings
-    )
+                embeddings=embeddings)
 
     model.compile(optimizer=tf.keras.optimizers.Adam(
                                 learning_rate=learning_rate),
                   loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=[tfa.metrics.F1Score(num_classes=num_classes,
-                                               average='micro')])
+                                               average='macro')])
 
+    return model
+
+def train_model(model, x_train, y_train, x_val, y_val,
+                batch_size, epochs, checkpoint_path):
+    """Transformerモデルを学習させる"""
     callbacks = [
         tf.keras.callbacks.EarlyStopping(
             monitor='val_f1_score', mode='max', patience=2),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath="models/checkpoint",
+            filepath=checkpoint_path,
             monitor='val_f1_score', mode='max',
             save_best_only=True)
     ]
@@ -57,10 +39,11 @@ def main():
               y=y_train,
               batch_size=batch_size,
               epochs=epochs,
-              validation_data=(x_test, y_test),
+              validation_data=(x_val, y_val),
               callbacks=callbacks,
               shuffle=True)
 
+    # 最も性能が良かったエポックの重みを読み込む
+    model.load_weights(checkpoint_path)
 
-if __name__ == '__main__':
-    main()
+    return model
